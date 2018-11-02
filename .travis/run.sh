@@ -11,7 +11,7 @@ cd $TOPDIR
 # Run every test
 for TOPDIRNAME in clusters;
 do
-    TESTDIRS=$(find nesta/$TOPDIRNAME -name "test*" -type d)
+    TESTDIRS=$(find jklearn/$TOPDIRNAME -name "test*" -type d)
     for TESTDIRNAME in $TESTDIRS;
     do
 	python -m unittest discover $TESTDIRNAME
