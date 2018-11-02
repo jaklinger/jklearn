@@ -9,7 +9,7 @@ TOPDIR=$PWD
 cd $TOPDIR
 
 # Run every test
-for TOPDIRNAME in clusters;
+for TOPDIRNAME in cluster;
 do
     TESTDIRS=$(find jklearn/$TOPDIRNAME -name "test*" -type d)
     for TESTDIRNAME in $TESTDIRS;
