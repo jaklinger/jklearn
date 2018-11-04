@@ -118,13 +118,14 @@ class Omnislash:
         Args:
             X (:obj:`np.ndarray`): Input data.
         """
-        args = (self.pca, self.evr_max, self.min_leaf_size,
+        args = (X, self.pca, self.evr_max, self.min_leaf_size,
                 self.sample_space_size)
-        initial_indexer = np.array([True]*len(X))
+        #initial_indexer = np.array([True]*len(X))
+        initial_indexer = np.indices((X.shape[0],)).flatten()
         if self.slash_tree is not None:
             del self.slash_tree
         self.slash_tree = Slash(level=0, indexer=initial_indexer)
-        self.slash_tree.slash(X, *args)
+        self.slash_tree.slash(*args)
 
     def predict(self, X, *args, **kwargs):
         """Extract labels for the input data
@@ -137,7 +138,7 @@ class Omnislash:
         """
         raw_indexes = [i for i in range(len(X))]
         indexes = np.array(raw_indexes)
-        clusters = self.slash_tree.generate_clusters(indexes)
+        clusters = self.slash_tree.generate_clusters()
         for label, cluster in enumerate(clusters):
             for idx in cluster:
                 indexes[idx] = label
@@ -196,15 +197,10 @@ class Slash:
         best_cut = None
         best_axis = None
         # Transform to principal components
-        _X = pca.fit_transform(X) #[self.indexer])
+        _X = pca.fit_transform(X)
         # Iterate until evr_max is reached
         for axis, evr in enumerate(pca.explained_variance_ratio_):
             # Slice and sort the array
-            #_X_axis = _X[:, axis]
-
-            #_sorted_X = _X[:, axis]
-            #_sorted_X.sort()
-
             _sorted_X = np.sort(_X[:, axis])
             # Cut off the tails of the distribution
             low = percentile(_sorted_X, 0.01)
@@ -226,15 +222,15 @@ class Slash:
                 break
         # Generate the cut
         left_cut = (_X[:, best_axis] <= best_cut).flatten()
-        #print(left_cut)
         del _X
         return left_cut, ~left_cut
 
-    def slash(self, X, pca, evr_max, min_leaf_size, sample_space_size):
+    def slash(self, original_data, pca, evr_max,
+              min_leaf_size, sample_space_size):
         """Recursive slashing of the data via child nodes.
 
         Args:
-            X (:obj:`np.ndarray`): Input data.
+            original_data (:obj:`np.ndarray`): Input data.
             pca: A :obj:`sklearn.decomposition.PCA` instance.
             evr_max: Maximum cumulative 'explained variance ratio' to
                      consider when scanning principal component axes.
@@ -255,11 +251,13 @@ class Slash:
 
         # Perform the splitting
         if self.level > 0:   # Don't waste memory on the first iteration
-            X = X[self.indexer]
+            X = original_data[self.indexer]
+        else:
+            X = original_data
         left_cut, right_cut = self.find_best_cut(X, pca, evr_max,
                                                  sample_space_size)
+        del X
         if min(left_cut.sum(), right_cut.sum()) < min_leaf_size:
-            del X
             return
 
         # Generate children
@@ -267,20 +265,13 @@ class Slash:
                           indexer=self.indexer[left_cut])
         self.right = Slash(level=self.level+1,
                            indexer=self.indexer[right_cut])
-        self.indexer = self.indexer & left_cut
 
         # Continue slashing
-        left_data = X[left_cut]
-        right_data = X[right_cut]
-        del X
-        self.left.slash(left_data, pca, evr_max,
-                        min_leaf_size, sample_space_size)
-        del left_data
-        self.right.slash(right_data, pca, evr_max,
-                         min_leaf_size, sample_space_size)
-        del right_data
+        args = (original_data, pca, evr_max, min_leaf_size, sample_space_size)
+        self.left.slash(*args)
+        self.right.slash(*args)
 
-    def generate_clusters(self, labels):
+    def generate_clusters(self, labels=[]):
         """Recursively extract cluster labels.
 
         Args:
@@ -291,11 +282,12 @@ class Slash:
         """
         # Check whether children exist
         if self.left is None:
-            return [set(labels)]
-        # If so, recurse with the subset given by the indexer
-        right = self.right.generate_clusters(labels[~self.indexer])
-        left = self.left.generate_clusters(labels[self.indexer])
-        return right + left
+            labels.append(self.indexer)
+            return
+        else:
+            self.left.generate_clusters(labels)
+            self.right.generate_clusters(labels)
+        return labels
 
 
 if __name__ == "__main__":

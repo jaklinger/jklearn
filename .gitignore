@@ -7,3 +7,4 @@ docs/
 lib/
 *.so
 .ipynb_checkpoints/
+outputs/

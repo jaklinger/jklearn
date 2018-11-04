@@ -1,1 +1,1 @@
-from .omnislash import *
+from .omnislash_opt import *
