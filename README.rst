@@ -26,8 +26,6 @@ Omnislash
 
 Usage::
 
-  .. highlight:: python
-  
      from jklearn.cluster import Omnislash
      import requests
      import pandas as pd
