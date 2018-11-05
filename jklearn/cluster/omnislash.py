@@ -1,7 +1,5 @@
-# TODO could implement parallel processing for large branches
-# TODO could compile with cython
 """
-omnislash
+Omnislash
 =========
 
 Quick and rough top-down hierarchical segmentation of
@@ -14,6 +12,15 @@ import math
 
 
 def percentile(X, percent):
+    """Fast percentile calculation on a sorted array.
+
+    Args:
+        X (:obj:`np.array`): A sorted array.
+        percent (float): A decimal fraction (0 to 1) at which to
+                         calculate the percentile.
+    Returns:
+        The percentile.
+    """
     k = (len(X)-1) * percent
     f = math.floor(k)
     c = math.ceil(k)
@@ -94,7 +101,7 @@ class Omnislash:
     """
 
     def __init__(self, min_leaf_size,
-                 n_components_max=10,
+                 n_components_max=50,
                  evr_max=0.75,
                  sample_space_size=100, **pca_kwargs):
         if "iterated_power" not in pca_kwargs:
@@ -106,7 +113,8 @@ class Omnislash:
             pca_kwargs["n_components"] = n_components_max
         pca_kwargs["copy"] = False
 
-        self.pca = PCA(**pca_kwargs)
+        self.pca_kwargs = pca_kwargs
+        self.pca = None
         self.min_leaf_size = min_leaf_size
         self.evr_max = evr_max
         self.sample_space_size = sample_space_size
@@ -118,9 +126,11 @@ class Omnislash:
         Args:
             X (:obj:`np.ndarray`): Input data.
         """
+        if X.shape[1] < self.pca_kwargs["n_components"]:
+            self.pca_kwargs["n_components"] = X.shape[1]
+        self.pca = PCA(**self.pca_kwargs)
         args = (X, self.pca, self.evr_max, self.min_leaf_size,
                 self.sample_space_size)
-        #initial_indexer = np.array([True]*len(X))
         initial_indexer = np.indices((X.shape[0],)).flatten()
         if self.slash_tree is not None:
             del self.slash_tree
