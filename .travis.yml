@@ -5,6 +5,8 @@ install:
   - pip install --upgrade setuptools
   - python setup.py install
   - pip install -r requirements.txt
+  - pip install pandas
+  - pip install requests
   - python -c "import sys; print(sys.path)"
 before_install:
   - chmod +x ./.travis/run.sh
