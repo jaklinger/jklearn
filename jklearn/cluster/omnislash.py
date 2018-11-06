@@ -66,11 +66,15 @@ def evaluate_score(cut, sorted_X, tight=False):
     mean_left, var_left = mean_and_var(sorted_X[:cut_idx])
     mean_right, var_right = mean_and_var(sorted_X[cut_idx:])
     if tight:
-        mean_left = mean_left + np.sqrt(var_left)
-        mean_right = mean_right - np.sqrt(var_right)
+        #mean_left = mean_left + np.sqrt(var_left)
+        #mean_right = mean_right - np.sqrt(var_right)
+        mean_left = percentile(sorted_X[:cut_idx], 0.75)
+        mean_right = percentile(sorted_X[cut_idx:], 0.25)
+
     # Calculate the variance in the region of the cut
     left_idx = np.searchsorted(sorted_X, mean_left)
     right_idx = np.searchsorted(sorted_X, mean_right)
+
     _, var_between = mean_and_var(sorted_X[left_idx:right_idx])
     # Calculate the loss
     return (var_left + var_right)/var_between
@@ -103,7 +107,9 @@ class Omnislash:
     def __init__(self, min_leaf_size,
                  n_components_max=50,
                  evr_max=0.75,
-                 sample_space_size=100, **pca_kwargs):
+                 sample_space_size=100,
+                 tight_data=False,
+                 **pca_kwargs):
         if "iterated_power" not in pca_kwargs:
             pca_kwargs["iterated_power"] = 3
         if "n_components" in pca_kwargs:
@@ -113,6 +119,7 @@ class Omnislash:
             pca_kwargs["n_components"] = n_components_max
         pca_kwargs["copy"] = False
 
+        self.tight_data = tight_data
         self.pca_kwargs = pca_kwargs
         self.pca = None
         self.min_leaf_size = min_leaf_size
@@ -137,21 +144,22 @@ class Omnislash:
         self.slash_tree = Slash(level=0, indexer=initial_indexer)
         self.slash_tree.slash(*args)
 
-    def predict(self, X, *args, **kwargs):
-        """Extract labels for the input data
+    def predict(self, *args, **kwargs):
+        """Extract labels for the input data trained
         from the pretrained hierarchical clustering tree :obj:`slash_tree`
 
-        Args:
-            X (:obj:`np.ndarray`): Input data.
         Returns:
             labels (:obj:`np.array`): Cluster labels.
         """
-        raw_indexes = [i for i in range(len(X))]
-        indexes = np.array(raw_indexes)
-        clusters = self.slash_tree.generate_clusters()
-        for label, cluster in enumerate(clusters):
+        indexes = self.slash_tree.indexer.copy()
+        clusters = []
+        self.slash_tree.generate_clusters(clusters)
+        icluster = -1
+        for cluster in clusters:
+            if len(cluster) > 0:
+                icluster += 1
             for idx in cluster:
-                indexes[idx] = label
+                indexes[idx] = icluster
         return indexes
 
     def fit_predict(self, X, *args, **kwargs):
@@ -176,11 +184,12 @@ class Slash:
                                    how to arrive at the current node from the
                                    parent node.
     """
-    def __init__(self, level, indexer):
+    def __init__(self, level, indexer, tight_data=False):
         self.level = level
         self.indexer = indexer
         self.left = None
         self.right = None
+        self.tight_data = tight_data
 
     def find_best_cut(self, X, pca, evr_max, sample_space_size):
         """
@@ -218,7 +227,8 @@ class Slash:
             # Sample 100 points on the distribution
             for cut in np.linspace(low, high, sample_space_size):
                 score = evaluate_score(cut, _sorted_X,
-                                       tight=(self.level == 0))
+                                       tight=(self.tight_data or
+                                              self.level == 0))
                 # Update if a better score is found
                 if best_score is None or score < best_score:
                     best_score = score
@@ -293,7 +303,7 @@ class Slash:
         # Check whether children exist
         if self.left is None:
             labels.append(self.indexer)
-            return
+            return [self.indexer]
         else:
             self.left.generate_clusters(labels)
             self.right.generate_clusters(labels)
