@@ -64,7 +64,7 @@ class TestOmnislash(TestCase):
     def test_omnislash(self):
         omni = Omnislash(50)
         labels = omni.fit_predict(self.cluster_data)
-        self.assertEqual(len(set(labels)), 16)
+        self.assertEqual(len(set(labels)), 17)
 
         omni = Omnislash(50, n_components_max=1000)
         omni.fit_predict(self.cluster_data)
