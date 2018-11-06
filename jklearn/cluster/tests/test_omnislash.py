@@ -57,7 +57,6 @@ class TestOmnislash(TestCase):
                 if min_score is None or score < min_score:
                     min_score = score
                     min_cut = cut
-            print(cut, score)
         self.assertLess(min_cut, 1)
         self.assertGreater(min_cut, -1)
 
