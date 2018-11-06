@@ -97,6 +97,9 @@ class Omnislash:
                        scans the first component for each segmentation.
         sample_space_size (int): Number of points to uniformally sample on
                                  each principal component.
+        tight_data (bool): Whether or not to always use the tight betweeness
+                           condition for the splitting function. Can be useful
+                           for data containing very well-defined clusters.
         pca_kwargs (dict): Any parameters to pass to
                            :obj:`sklearn.decomposition.PCA`. Note: :obj:`copy`
                            is always set to :obj:`False`
