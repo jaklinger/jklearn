@@ -57,14 +57,13 @@ class TestOmnislash(TestCase):
                 if min_score is None or score < min_score:
                     min_score = score
                     min_cut = cut
-            print(cut, score)
         self.assertLess(min_cut, 1)
         self.assertGreater(min_cut, -1)
 
     def test_omnislash(self):
         omni = Omnislash(50)
         labels = omni.fit_predict(self.cluster_data)
-        self.assertEqual(len(set(labels)), 16)
+        self.assertEqual(len(set(labels)), 17)
 
         omni = Omnislash(50, n_components_max=1000)
         omni.fit_predict(self.cluster_data)

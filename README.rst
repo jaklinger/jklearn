@@ -24,6 +24,10 @@ Currently only available from source::
 Omnislash
 ---------
 
+You can find a very soft description of the algorithm here_.
+
+.. _here: https://www.nesta.org.uk/blog/omnislash/
+
 Usage::
 
      from jklearn.cluster import Omnislash
