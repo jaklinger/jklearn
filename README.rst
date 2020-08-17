@@ -28,7 +28,9 @@ You can find a very soft description of the algorithm here_.
 
 .. _here: https://www.nesta.org.uk/blog/omnislash/
 
-Usage::
+Usage:
+
+.. code-block:: python3
 
      from jklearn.cluster import Omnislash
      import requests
